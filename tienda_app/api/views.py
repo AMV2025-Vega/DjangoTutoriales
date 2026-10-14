@@ -1,6 +1,16 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+###
+from django.http import JsonResponse
+
+def listar_productos(request):
+    return JsonResponse({
+        "productos": [
+            {"id": 1, "nombre": "Producto Base Monolito", "precio": 100.0}
+        ]
+    }, safe=False)
+###
 
 from tienda_app.infra.factories import PaymentFactory
 from tienda_app.services import CompraService
