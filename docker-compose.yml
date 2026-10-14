@@ -12,7 +12,6 @@ services:
 
   web:
     build: .
-    # Reemplaza 'Tienda' si tu carpeta contenedora de wsgi.py se llama diferente
     command: gunicorn Tienda.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - .:/app
