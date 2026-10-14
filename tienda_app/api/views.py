@@ -9,13 +9,10 @@ from .serializers import OrdenInputSerializer
 
 
 class CompraAPIView(APIView):
-    """
-    Endpoint para procesar compras via JSON.
-    POST /api/v1/comprar/
-    Payload: {"libro_id": 1, "direccion_envio": "Calle 123", "cantidad": 1}
-    """
+    """Endpoint REST para procesar compras utilizando la capa de servicio existente."""
 
     def post(self, request):
+        # 1. Validación de los datos de entrada (Patrón Adapter / DTO)
         serializer = OrdenInputSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -23,25 +20,29 @@ class CompraAPIView(APIView):
         datos = serializer.validated_data
 
         try:
+            # 2. Inyección de dependencias mediante la Fábrica (Factory Method)
             gateway = PaymentFactory.get_processor()
+
+            # 3. Ejecución de la lógica de negocio reutilizando la Capa de Servicio
             servicio = CompraService(procesador_pago=gateway)
-            usuario = request.user if request.user.is_authenticated else None
             resultado = servicio.ejecutar_compra(
                 libro_id=datos['libro_id'],
-                cantidad=datos.get('cantidad', 1),
+                cantidad=datos['cantidad'],
                 direccion=datos['direccion_envio'],
-                usuario=usuario,
+                usuario=request.user if request.user.is_authenticated else None,
             )
 
             return Response(
                 {
-                    'estado': 'exito',
-                    'mensaje': f'Orden creada. Total: {resultado}',
+                    "estado": "éxito",
+                    "mensaje": f"Orden creada correctamente. Total pagado: ${resultado}",
                 },
                 status=status.HTTP_201_CREATED,
             )
 
         except ValueError as e:
-            return Response({'error': str(e)}, status=status.HTTP_409_CONFLICT)
-        except Exception:
-            return Response({'error': 'Error interno'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # Errores de lógica de negocio (ej. falta de stock)
+            return Response({"error": str(e)}, status=status.HTTP_409_CONFLICT)
+        except Exception as e:
+            # Errores inesperados de infraestructura o servidor
+            return Response({"error": "Error interno del servidor"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

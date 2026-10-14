@@ -1,5 +1,4 @@
 import os
-
 from .gateways import BancoNacionalProcesador
 
 
@@ -12,9 +11,11 @@ class MockPaymentProcessor:
 class PaymentFactory:
     @staticmethod
     def get_processor():
+        # La configuración viene del ambiente, no del código
         provider = os.getenv('PAYMENT_PROVIDER', 'BANCO')
 
         if provider == 'MOCK':
             return MockPaymentProcessor()
 
+        # Por defecto usamos la infraestructura real
         return BancoNacionalProcesador()

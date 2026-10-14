@@ -1,3 +1,4 @@
+import datetime
 from django.shortcuts import get_object_or_404
 
 from .domain.builders import OrdenBuilder
@@ -44,4 +45,34 @@ class CompraService:
         inv.cantidad -= cantidad
         inv.save()
 
+        # Generar registro físico en el archivo de log del sistema
+        with open("pagos_sistema.log", "a", encoding="utf-8") as log_file:
+            log_file.write(
+                f"[{datetime.datetime.now()}] Compra Exitosa (API/Web) - "
+                f"Orden #{orden.id} - Libro: {libro.titulo} - "
+                f"Cantidad: {cantidad} - Total: ${orden.total}\n"
+            )
+
         return orden.total
+
+
+# Modificación / Servicio auxiliar
+class CompraRapidaService:
+    def __init__(self, procesador_pago):
+        self.procesador_pago = procesador_pago
+
+    def procesar(self, libro_id):
+        libro = Libro.objects.get(id=libro_id)
+        inv = Inventario.objects.get(libro=libro)
+        
+        if inv.cantidad <= 0:
+            raise ValueError("No hay existencias.")
+            
+        total = CalculadorImpuestos.obtener_total_con_iva(libro.precio)
+        
+        if self.procesador_pago.pagar(total):
+            inv.cantidad -= 1
+            inv.save()
+            return total
+            
+        return None
