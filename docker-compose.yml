@@ -10,7 +10,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=secret_password
 
-  web:
+  web_django: # El Monolito (v1)
     build: .
     command: gunicorn Tienda.wsgi:application --bind 0.0.0.0:8000
     volumes:
@@ -23,16 +23,21 @@ services:
       - DB_PASSWORD=secret_password
       - DB_HOST=db
       - DB_PORT=5432
-    # NOTA: Ya no hay sección 'ports' aquí. Django está aislado de internet.
+
+  pagos_flask: # El Microservicio (v2) - EL ESTRANGULADOR
+    build: ./microservicio_pagos
+    ports:
+      - "5000:5000" # Solo para pruebas iniciales
 
   nginx:
     image: nginx:1.25-alpine
     ports:
-      - "80:80" # Nginx es el único que expone puerto a internet
+      - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
-      - web
+      - web_django
+      - pagos_flask
 
 volumes:
   postgres_data:
